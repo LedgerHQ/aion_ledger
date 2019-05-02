@@ -153,3 +153,9 @@ def test_verify_signature_without_data():
     assert "true" in str(verification_result)
 
 
+
+test_get_public_key_and_address()
+
+test_verify_signature_with_data()
+
+test_verify_signature_without_data()

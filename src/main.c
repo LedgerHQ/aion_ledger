@@ -115,17 +115,25 @@ volatile bool skipWarning;
 
 bagl_element_t tmp_element;
 
+#ifdef TARGET_NANOX
+#include "ux.h"
+ux_state_t G_ux;
+bolos_ux_params_t G_ux_params;
+#else // TARGET_NANOX
 ux_state_t ux;
+
 // display stepped screens
 unsigned int ux_step;
 unsigned int ux_step_count;
+#endif // TARGET_NANOX
+
 
 typedef struct internalStorage_t {
   unsigned char dataAllowed;
   uint8_t initialized;
 } internalStorage_t;
 
-WIDE internalStorage_t N_storage_real;
+WIDE internalStorage_t const N_storage_real;
 #define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
 
 static const char const CONTRACT_ADDRESS[] = "New contract";
@@ -767,12 +775,360 @@ unsigned int ui_approval_signMessage_prepro(const bagl_element_t *element) {
 
 #endif // #if defined(TARGET_NANOS)
 
+#if defined(TARGET_BLUE)
+const bagl_element_t ui_data_selector_blue[] = {
+  {{BAGL_RECTANGLE                      , 0x00,   0,  68, 320, 413, 0, 0, BAGL_FILL, COLOR_BG_1, 0x000000, 0                                                                                 , 0   }, NULL, 0, 0, 0, NULL, NULL, NULL },
+
+
+  // erase screen (only under the status bar)
+  {{BAGL_RECTANGLE                      , 0x00,   0,  20, 320,  48, 0, 0, BAGL_FILL, COLOR_APP, COLOR_APP, 0                                                      , 0   }, NULL, 0, 0, 0, NULL, NULL, NULL},
+
+  /// TOP STATUS BAR
+  {{BAGL_LABELINE                       , 0x00,   0,  45, 320,  30, 0, 0, BAGL_FILL, 0xFFFFFF, COLOR_APP, BAGL_FONT_OPEN_SANS_SEMIBOLD_10_13PX|BAGL_FONT_ALIGNMENT_CENTER, 0   }, "CONFIRM SELECTOR", 0, 0, 0, NULL, NULL, NULL},
+
+  //{{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 264,  19,  56,  44, 0, 0, BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT, BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF, io_seproxyhal_touch_exit, NULL, NULL},
+
+  {{BAGL_LABELINE                       , 0x00,  30, 106, 320,  30, 0, 0, BAGL_FILL, 0x999999, COLOR_BG_1, BAGL_FONT_OPEN_SANS_SEMIBOLD_8_11PX, 0   }, "SELECTOR", 0, 0, 0, NULL, NULL, NULL},
+
+  {{BAGL_LABELINE                       , 0x10,  30, 136, 260,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0   }, strings.tmp.tmp, 0, 0, 0, NULL, NULL, NULL},
+
+  {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00,  40, 414, 115,  36, 0,18, BAGL_FILL, 0xCCCCCC, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_11_14PX|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, "REJECT", 0, 0xB7B7B7, COLOR_BG_1, io_seproxyhal_touch_data_cancel, NULL, NULL},
+  {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 165, 414, 115,  36, 0,18, BAGL_FILL, 0x41ccb4, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_11_14PX|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, "CONFIRM", 0, 0x3ab7a2, COLOR_BG_1, io_seproxyhal_touch_data_ok, NULL, NULL},
+};
+
+unsigned int ui_data_selector_blue_prepro(const bagl_element_t* element) {
+  copy_element_and_map_coin_colors(element);
+  if(element->component.userid > 0) {
+    unsigned int length = strlen(strings.tmp.tmp);
+    unsigned int offset = (element->component.userid & 0xF) * 24;
+    if (length >= offset) {
+      unsigned int copyLength = ((offset + 24) > length ? length - offset : 24);
+      os_memset(addressSummary, 0, 25);
+      os_memmove(addressSummary, strings.tmp.tmp + offset, copyLength);
+      return &tmp_element;
+    }
+    // nothing to draw for this line
+    return 0;
+  }
+  return &tmp_element;
+}
+
+unsigned int ui_data_selector_blue_button(unsigned int button_mask, unsigned int button_mask_counter) {
+  return 0;
+}
+#endif // #if defined(TARGET_BLUE)
+
+
+#if defined(TARGET_NANOS)
+const bagl_element_t ui_data_selector_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0}, NULL, 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS}, NULL, 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CHECK}, NULL, 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0}, "Confirm", 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0}, "selector", 0, 0, 0, NULL, NULL, NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0}, "Selector", 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26}, (char *)strings.tmp.tmp, 0, 0, 0, NULL, NULL, NULL},
+};
+
+unsigned int ui_data_selector_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        unsigned int display = (ux_step == element->component.userid - 1);
+        if (display) {
+            switch (element->component.userid) {
+                case 1:
+                    UX_CALLBACK_SET_INTERVAL(2000);
+                    break;
+                case 2:
+                    UX_CALLBACK_SET_INTERVAL(MAX(
+                        3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                    break;
+            }
+        }
+        return display;
+    }
+    return 1;
+}
+
+unsigned int ui_data_selector_nanos_button(unsigned int button_mask,
+                                     unsigned int button_mask_counter);
+#endif // #if defined(TARGET_NANOS)
+
+#if defined(TARGET_BLUE)
+const bagl_element_t ui_data_parameter_blue[] = {
+  {{BAGL_RECTANGLE                      , 0x00,   0,  68, 320, 413, 0, 0, BAGL_FILL, COLOR_BG_1, 0x000000, 0                                                                                 , 0   }, NULL, 0, 0, 0, NULL, NULL, NULL },
+
+
+  // erase screen (only under the status bar)
+  {{BAGL_RECTANGLE                      , 0x00,   0,  20, 320,  48, 0, 0, BAGL_FILL, COLOR_APP, COLOR_APP, 0                                                      , 0   }, NULL, 0, 0, 0, NULL, NULL, NULL},
+
+  /// TOP STATUS BAR
+  {{BAGL_LABELINE                       , 0x00,   0,  45, 320,  30, 0, 0, BAGL_FILL, 0xFFFFFF, COLOR_APP, BAGL_FONT_OPEN_SANS_SEMIBOLD_10_13PX|BAGL_FONT_ALIGNMENT_CENTER, 0   }, "CONFIRM PARAMETER", 0, 0, 0, NULL, NULL, NULL},
+
+  //{{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 264,  19,  56,  44, 0, 0, BAGL_FILL, COLOR_APP, COLOR_APP_LIGHT, BAGL_FONT_SYMBOLS_0|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, " " /*BAGL_FONT_SYMBOLS_0_DASHBOARD*/, 0, COLOR_APP, 0xFFFFFF, io_seproxyhal_touch_exit, NULL, NULL},
+
+  {{BAGL_LABELINE                       , 0x00,  30, 106, 320,  30, 0, 0, BAGL_FILL, 0x999999, COLOR_BG_1, BAGL_FONT_OPEN_SANS_SEMIBOLD_8_11PX, 0   }, "PARAMETER", 0, 0, 0, NULL, NULL, NULL},
+
+  {{BAGL_LABELINE                       , 0x00,  30, 136, 260,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0   }, strings.tmp.tmp2, 0, 0, 0, NULL, NULL, NULL},
+  {{BAGL_LABELINE                       , 0x10,  30, 159, 260,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0   }, addressSummary, 0, 0, 0, NULL, NULL, NULL},
+  {{BAGL_LABELINE                       , 0x11,  30, 182, 260,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0   }, addressSummary, 0, 0, 0, NULL, NULL, NULL},
+  {{BAGL_LABELINE                       , 0x12,  30, 205, 260,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0   }, addressSummary, 0, 0, 0, NULL, NULL, NULL},
+  {{BAGL_LABELINE                       , 0x13,  30, 228, 260,  30, 0, 0, BAGL_FILL, 0x000000, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_10_13PX, 0   }, addressSummary, 0, 0, 0, NULL, NULL, NULL},
+
+  {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00,  40, 414, 115,  36, 0,18, BAGL_FILL, 0xCCCCCC, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_11_14PX|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, "REJECT", 0, 0xB7B7B7, COLOR_BG_1, io_seproxyhal_touch_data_cancel, NULL, NULL},
+  {{BAGL_RECTANGLE | BAGL_FLAG_TOUCHABLE, 0x00, 165, 414, 115,  36, 0,18, BAGL_FILL, 0x41ccb4, COLOR_BG_1, BAGL_FONT_OPEN_SANS_REGULAR_11_14PX|BAGL_FONT_ALIGNMENT_CENTER|BAGL_FONT_ALIGNMENT_MIDDLE, 0 }, "CONFIRM", 0, 0x3ab7a2, COLOR_BG_1, io_seproxyhal_touch_data_ok, NULL, NULL},
+};
+
+unsigned int ui_data_parameter_blue_prepro(const bagl_element_t* element) {
+  copy_element_and_map_coin_colors(element);
+  if(element->component.userid > 0) {
+    unsigned int pos = (element->component.userid & 0xF);
+    unsigned int i;
+    unsigned int offset = 0;
+    unsigned int copyLength;
+    for (i=0; i<pos; i++) {
+        offset += local_strchr(strings.tmp.tmp + offset, ':');
+        if (offset < 0) {
+            THROW(EXCEPTION);
+        }
+        offset = offset + 1;
+    }
+    if (pos == 3) {
+        copyLength = strlen(strings.tmp.tmp) - offset;
+    }
+    else {
+        unsigned int endOffset;
+        endOffset = offset + local_strchr(strings.tmp.tmp + offset, ':');
+        copyLength = endOffset - offset;
+    }
+    os_memmove(addressSummary, strings.tmp.tmp + offset, copyLength);
+    addressSummary[copyLength] = '\0';
+  }
+  return &tmp_element;
+}
+
+unsigned int ui_data_parameter_blue_button(unsigned int button_mask, unsigned int button_mask_counter) {
+  return 0;
+}
+#endif // #if defined(TARGET_BLUE)
+
+
+#if defined(TARGET_NANOS)
+const bagl_element_t ui_data_parameter_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF, 0, 0}, NULL, 0, 0, 0, NULL, NULL, NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CROSS}, NULL, 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_CHECK}, NULL, 0, 0, 0, NULL, NULL, NULL},
+
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0}, "Confirm", 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0}, "parameter", 0, 0, 0, NULL, NULL, NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0}, (char*)strings.tmp.tmp2, 0, 0, 0, NULL, NULL, NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000, BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26}, (char *)strings.tmp.tmp, 0, 0, 0, NULL, NULL, NULL},
+};
+
+unsigned int ui_data_parameter_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        unsigned int display = (ux_step == element->component.userid - 1);
+        if (display) {
+            switch (element->component.userid) {
+            case 1:
+                UX_CALLBACK_SET_INTERVAL(2000);
+                break;
+            case 2:
+                UX_CALLBACK_SET_INTERVAL(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                break;
+            }
+        }
+        return display;
+    }
+    return 1;
+}
+
+unsigned int ui_data_parameter_nanos_button(unsigned int button_mask,
+                                     unsigned int button_mask_counter);
+#endif // #if defined(TARGET_NANOS)
+
+#if defined(TARGET_NANOX)
+
+void display_settings(void);
+void switch_settings_contract_data(void);
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(
+    ux_idle_flow_1_step,
+    pnn, //pnn,
+    {
+      &C_nanox_app_aion,
+      "Application",
+      "is ready",
+    });
+UX_STEP_VALID(
+    ux_idle_flow_2_step,
+    pb,
+    display_settings(),
+    {
+      &C_icon_coggle,
+      "Settings",
+    });
+UX_STEP_NOCB(
+    ux_idle_flow_3_step,
+    bn,
+    {
+      "Version",
+      APPVERSION,
+    });
+UX_STEP_VALID(
+    ux_idle_flow_4_step,
+    pb,
+    os_sched_exit(-1),
+    {
+      &C_icon_dashboard_x,
+      "Quit",
+    });
+const ux_flow_step_t *        const ux_idle_flow [] = {
+  &ux_idle_flow_1_step,
+  &ux_idle_flow_2_step,
+  &ux_idle_flow_3_step,
+  &ux_idle_flow_4_step,
+  FLOW_END_STEP,
+};
+
+UX_STEP_VALID(
+    ux_settings_flow_1_step,
+    bnnn,
+    switch_settings_contract_data(),
+    {
+      "Contract data",
+      "Allow contract data",
+      "in transactions",
+      fullAddress,
+    });
+
+UX_STEP_VALID(
+    ux_settings_flow_3_step,
+    pb,
+    ui_idle(),
+    {
+      &C_icon_back_x,
+      "Back",
+    });
+
+const ux_flow_step_t *        const ux_settings_flow [] = {
+  &ux_settings_flow_1_step,
+  &ux_settings_flow_3_step,
+  FLOW_END_STEP,
+};
+
+void display_settings() {
+  strcpy(fullAddress, (N_storage.dataAllowed ? "Allowed" : "NOT Allowed"));
+  ux_flow_init(0, ux_settings_flow, NULL);
+}
+
+void switch_settings_contract_data() {
+  uint8_t value = (N_storage.dataAllowed ? 0 : 1);
+  nvm_write(&N_storage.dataAllowed, (void*)&value, sizeof(uint8_t));
+  display_settings();
+}
+
+
+//////////////////////////////////////////////////////////////////////
+UX_STEP_NOCB(ux_approval_tx_1_step,
+    pnn,
+    {
+      &C_icon_eye,
+      "Review",
+      "transaction",
+    });
+UX_STEP_NOCB(
+    ux_approval_tx_2_step,
+    bnnn_paging,
+    {
+      .title = "Amount",
+      .text = fullAmount
+    });
+UX_STEP_NOCB(
+    ux_approval_tx_3_step,
+    bnnn_paging,
+    {
+      .title = "Address",
+      .text = fullAddress,
+    });
+UX_STEP_NOCB(
+    ux_approval_tx_4_step,
+    bnnn_paging,
+    {
+      .title = "Max Fees",
+      .text = maxFee,
+    });
+UX_STEP_VALID(
+    ux_approval_tx_5_step,
+    pbb,
+    io_seproxyhal_touch_tx_ok(NULL),
+    {
+      &C_icon_validate_14,
+      "Accept",
+      "and send",
+    });
+UX_STEP_VALID(
+    ux_approval_tx_6_step,
+    pb,
+    io_seproxyhal_touch_tx_cancel(NULL),
+    {
+      &C_icon_crossmark,
+      "Reject",
+    });
+UX_STEP_NOCB(ux_approval_tx_data_warning_step,
+    pbb,
+    {
+      &C_icon_warning_x,
+      "Data",
+      "Present",
+    });
+
+
+const ux_flow_step_t *        const ux_approval_tx_flow [] = {
+  &ux_approval_tx_1_step,
+  &ux_approval_tx_2_step,
+  &ux_approval_tx_3_step,
+  &ux_approval_tx_4_step,
+  &ux_approval_tx_5_step,
+  &ux_approval_tx_6_step,
+  FLOW_END_STEP,
+};
+
+const ux_flow_step_t *        const ux_approval_tx_data_warning_flow [] = {
+  &ux_approval_tx_1_step,
+  &ux_approval_tx_data_warning_step,
+  &ux_approval_tx_2_step,
+  &ux_approval_tx_3_step,
+  &ux_approval_tx_4_step,
+  &ux_approval_tx_5_step,
+  &ux_approval_tx_6_step,
+  FLOW_END_STEP,
+};
+
+
+#endif // #if defined(TARGET_NANOX)
+
+
 void ui_idle(void) {
     skipWarning = false;
 #if defined(TARGET_BLUE)
     UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
 #elif defined(TARGET_NANOS)
     UX_MENU_DISPLAY(0, menu_main, NULL);   
+#elif defined(TARGET_NANOX)
+    // reserve a display stack slot if none yet
+    if(G_ux.stack_count == 0) {
+        ux_stack_push();
+    }
+    ux_flow_init(0, ux_idle_flow, NULL);
 #endif // #if TARGET_ID
 }
 
@@ -806,12 +1162,12 @@ unsigned int io_seproxyhal_touch_tx_ok(const bagl_element_t *e) {
     // get hash
     unsigned char hash[HASH_SIZE];
     cx_blake2b_init(&blake, HASH_SIZE*8);
-    cx_hash_X((cx_hash_t *) &blake, CX_LAST, transaction_buffer, buffer_counter, hash);
+    cx_hash((cx_hash_t *) &blake, CX_LAST, transaction_buffer, buffer_counter, hash, 32);
 
     signatureLength =
         cx_eddsa_sign(&privateKey, CX_LAST, CX_SHA512,
                       hash,
-                      HASH_SIZE, NULL, 0, G_io_apdu_buffer, &info);
+                      HASH_SIZE, NULL, 0, G_io_apdu_buffer, 80, &info);
     os_memset(&privateKey, 0, sizeof(privateKey));    
 
     tx = signatureLength;
@@ -923,7 +1279,7 @@ uint32_t set_result_get_publicKey(cx_ecfp_public_key_t* pubKey) {
     // map address from public key
     unsigned char hash[HASH_SIZE];
     cx_blake2b_init(&blake, HASH_SIZE*8);
-    cx_hash_X((cx_hash_t *) &blake, CX_LAST, publicKey, KEY_SIZE, hash);
+    cx_hash((cx_hash_t *) &blake, CX_LAST, publicKey, KEY_SIZE, hash, 32);
     hash[0] = 0xa0;
 
     // write to output buffer
@@ -1164,6 +1520,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
   ux_step = 0;
   ux_step_count = 5;
   UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);   
+#elif defined(TARGET_NANOX)
+  ux_flow_init(0, (dataPresent ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow), NULL);
 #endif // #if TARGET_ID
 
   *flags |= IO_ASYNCH_REPLY;
@@ -1273,6 +1631,8 @@ void sample_main(void) {
                     THROW(0x6982);
                 }
 
+                PRINTF("New APDU received:\n%.*H\n", rx, G_io_apdu_buffer);
+
                 handleApdu(&flags, &tx);
             }
             CATCH(EXCEPTION_IO_RESET) {
@@ -1344,6 +1704,7 @@ unsigned char io_event(unsigned char channel) {
     case SEPROXYHAL_TAG_TICKER_EVENT:
         UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, 
         {
+          #ifndef TARGET_NANOX
           if (UX_ALLOWED) {
             if (skipWarning && (ux_step == 0)) {
               ux_step++;
@@ -1356,6 +1717,7 @@ unsigned char io_event(unsigned char channel) {
               UX_REDISPLAY(); 
             }
           }
+          #endif // TARGET_NANOX
         });
         break;
     }
