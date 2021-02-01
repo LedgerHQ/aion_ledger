@@ -27,7 +27,7 @@
 #include "os_io_seproxyhal.h"
 #include "string.h"
 
-#include "glyphs.h"
+#include "ux.h"
 #include "stdlib.h"
 
 #define __NAME3(a, b, c) a##b##c
