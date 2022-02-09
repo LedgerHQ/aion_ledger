@@ -115,17 +115,17 @@ volatile bool skipWarning;
 
 bagl_element_t tmp_element;
 
-#ifdef TARGET_NANOX
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 #include "ux.h"
 ux_state_t G_ux;
 bolos_ux_params_t G_ux_params;
-#else // TARGET_NANOX
+#else
 ux_state_t ux;
 
 // display stepped screens
 unsigned int ux_step;
 unsigned int ux_step_count;
-#endif // TARGET_NANOX
+#endif // TARGET_NANOX || defined(TARGET_NANOS2)
 
 
 typedef struct internalStorage_t {
@@ -134,14 +134,14 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 WIDE internalStorage_t const N_storage_real;
-#define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
+#define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real))
 
 static const char const CONTRACT_ADDRESS[] = "New contract";
 
 const unsigned char hex_digits[] = {'0', '1', '2', '3', '4', '5', '6', '7',
                                     '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-chain_config_t *chainConfig;                                    
+chain_config_t *chainConfig;
 
 void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
     while (len--) {
@@ -775,7 +775,7 @@ unsigned int ui_approval_signMessage_prepro(const bagl_element_t *element) {
 
 #endif // #if defined(TARGET_NANOS)
 
-#if defined(TARGET_NANOX)
+#if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 
 void display_settings(void);
 void switch_settings_contract_data(void);
@@ -935,7 +935,7 @@ const ux_flow_step_t *        const ux_approval_tx_data_warning_flow [] = {
 };
 
 
-#endif // #if defined(TARGET_NANOX)
+#endif // #if defined(TARGET_NANOX) || defined(TARGET_NANOS2)
 
 
 void ui_idle(void) {
@@ -943,8 +943,8 @@ void ui_idle(void) {
 #if defined(TARGET_BLUE)
     UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
 #elif defined(TARGET_NANOS)
-    UX_MENU_DISPLAY(0, menu_main, NULL);   
-#elif defined(TARGET_NANOX)
+    UX_MENU_DISPLAY(0, menu_main, NULL);
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
@@ -1340,8 +1340,8 @@ void handleSign(uint8_t p1, uint8_t p2, uint8_t *workBuffer, uint16_t dataLength
   skipWarning = !dataPresent;
   ux_step = 0;
   ux_step_count = 5;
-  UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);   
-#elif defined(TARGET_NANOX)
+  UX_DISPLAY(ui_approval_nanos, ui_approval_prepro);
+#elif defined(TARGET_NANOX) || defined(TARGET_NANOS2)
   ux_flow_init(0, (dataPresent ? ux_approval_tx_data_warning_flow : ux_approval_tx_flow), NULL);
 #endif // #if TARGET_ID
 
@@ -1504,7 +1504,7 @@ unsigned char io_event(unsigned char channel) {
     case SEPROXYHAL_TAG_FINGER_EVENT:
     		UX_FINGER_EVENT(G_io_seproxyhal_spi_buffer);
     		break;
-		
+
     case SEPROXYHAL_TAG_BUTTON_PUSH_EVENT:
         UX_BUTTON_PUSH_EVENT(G_io_seproxyhal_spi_buffer);
         break;
@@ -1523,9 +1523,9 @@ unsigned char io_event(unsigned char channel) {
         break;
 
     case SEPROXYHAL_TAG_TICKER_EVENT:
-        UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer, 
+        UX_TICKER_EVENT(G_io_seproxyhal_spi_buffer,
         {
-          #ifndef TARGET_NANOX
+          #if !defined(TARGET_NANOX) && !defined(TARGET_NANOS2)
           if (UX_ALLOWED) {
             if (skipWarning && (ux_step == 0)) {
               ux_step++;
@@ -1535,10 +1535,10 @@ unsigned char io_event(unsigned char channel) {
               // prepare next screen
               ux_step = (ux_step+1)%ux_step_count;
               // redisplay screen
-              UX_REDISPLAY(); 
+              UX_REDISPLAY();
             }
           }
-          #endif // TARGET_NANOX
+          #endif // TARGET_NANOX && TARGET_NANOS2
         });
         break;
     }
